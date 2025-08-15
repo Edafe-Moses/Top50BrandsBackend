@@ -185,3 +185,61 @@ class YearSetupSerializer(serializers.Serializer):
         if value and not YearlyRanking.objects.filter(year=value).exists():
             raise serializers.ValidationError(f"Source year {value} does not exist")
         return value
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    """Serializer for listing users."""
+    dashboard_profile = DashboardUserSerializer(read_only=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'is_active', 'is_staff', 'is_superuser', 'date_joined', 'last_login',
+            'dashboard_profile'
+        ]
+        read_only_fields = ['date_joined', 'last_login']
+
+
+class UserCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating and updating users."""
+    password = serializers.CharField(write_only=True, required=False)
+    dashboard_profile = serializers.DictField(required=False)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'is_active', 'is_staff', 'is_superuser', 'password', 'dashboard_profile'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+    
+    def create(self, validated_data):
+        """Create user with hashed password."""
+        dashboard_data = validated_data.pop('dashboard_profile', {})
+        password = validated_data.pop('password')
+        
+        user = User.objects.create_user(
+            password=password,
+            **validated_data
+        )
+        
+        return user
+    
+    def update(self, instance, validated_data):
+        """Update user, optionally updating password."""
+        dashboard_data = validated_data.pop('dashboard_profile', {})
+        password = validated_data.pop('password', None)
+        
+        # Update user fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Update password if provided
+        if password:
+            instance.set_password(password)
+        
+        instance.save()
+        return instance

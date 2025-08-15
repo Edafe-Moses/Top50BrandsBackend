@@ -17,7 +17,7 @@ from .models import YearlyRanking, DashboardUser, DataMigrationLog, SystemConfig
 from .serializers import (
     YearlyRankingSerializer, DashboardUserSerializer, 
     DataMigrationLogSerializer, SystemConfigurationSerializer,
-    LoginSerializer, DashboardStatsSerializer
+    LoginSerializer, DashboardStatsSerializer, UserListSerializer, UserCreateUpdateSerializer
 )
 from brands.models import Brand
 from blog.models import BlogPost
@@ -299,9 +299,13 @@ class DataMigrationLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 class DashboardUserViewSet(viewsets.ModelViewSet):
     """ViewSet for managing dashboard users."""
-    queryset = User.objects.filter(dashboard_profile__isnull=False)
-    serializer_class = DashboardUserSerializer
+    queryset = User.objects.all().order_by('-date_joined')
     permission_classes = [IsAdminUser]
+    
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return UserCreateUpdateSerializer
+        return UserListSerializer
     
     def get_queryset(self):
         """Filter users based on permissions."""
@@ -313,6 +317,46 @@ class DashboardUserViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_superuser=False)
         
         return queryset
+    
+    def perform_create(self, serializer):
+        """Create user with dashboard profile."""
+        user = serializer.save()
+        
+        # Create dashboard profile
+        dashboard_data = self.request.data.get('dashboard_profile', {})
+        DashboardUser.objects.create(
+            user=user,
+            role=dashboard_data.get('role', 'viewer'),
+            can_create_years=dashboard_data.get('can_create_years', False),
+            can_edit_brands=dashboard_data.get('can_edit_brands', False),
+            can_publish_content=dashboard_data.get('can_publish_content', False),
+            can_manage_users=dashboard_data.get('can_manage_users', False),
+        )
+    
+    def perform_update(self, serializer):
+        """Update user and dashboard profile."""
+        user = serializer.save()
+        
+        # Update dashboard profile
+        dashboard_data = self.request.data.get('dashboard_profile', {})
+        dashboard_profile, created = DashboardUser.objects.get_or_create(
+            user=user,
+            defaults={
+                'role': dashboard_data.get('role', 'viewer'),
+                'can_create_years': dashboard_data.get('can_create_years', False),
+                'can_edit_brands': dashboard_data.get('can_edit_brands', False),
+                'can_publish_content': dashboard_data.get('can_publish_content', False),
+                'can_manage_users': dashboard_data.get('can_manage_users', False),
+            }
+        )
+        
+        if not created:
+            dashboard_profile.role = dashboard_data.get('role', dashboard_profile.role)
+            dashboard_profile.can_create_years = dashboard_data.get('can_create_years', dashboard_profile.can_create_years)
+            dashboard_profile.can_edit_brands = dashboard_data.get('can_edit_brands', dashboard_profile.can_edit_brands)
+            dashboard_profile.can_publish_content = dashboard_data.get('can_publish_content', dashboard_profile.can_publish_content)
+            dashboard_profile.can_manage_users = dashboard_data.get('can_manage_users', dashboard_profile.can_manage_users)
+            dashboard_profile.save()
 
     @action(detail=True, methods=['post'])
     def reset_password(self, request, pk=None):

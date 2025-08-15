@@ -111,16 +111,16 @@ class Brand(TimeStampedModel, SEOModel, PublishableModel, SocialMediaModel, View
         """Get logo URL with fallback."""
         if self.logo:
             return self.logo.url
-        # Point to Next.js public directory
-        return f'/brands/logos/{self.slug}.png'
+        # Point to media directory
+        return f'/media/brands/logos/{self.slug}.png'
     
     @property
     def image_url(self):
         """Get image URL with fallback."""
         if self.image:
             return self.image.url
-        # Point to Next.js public directory
-        return f'/brands/{self.slug}.png'
+        # Point to media directory
+        return f'/media/brands/logos/{self.slug}.png'
 
 
 class BrandMetric(TimeStampedModel):

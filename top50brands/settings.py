@@ -13,9 +13,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production-' + 'x' * 50)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,*.pythonanywhere.com,*.vercel.app', cast=Csv())
 
 # Application definition
 DJANGO_APPS = [
@@ -148,13 +148,14 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:3000,http://127.0.0.1:3000,https://top50-brands-31k8.vercel.app,https://edafemoses.pythonanywhere.com',
+    cast=Csv()
+)
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -170,8 +171,8 @@ CORS_ALLOW_HEADERS = [
 # Session settings
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_COOKIE_HTTPONLY = False  # Allow JavaScript access for debugging
-SESSION_COOKIE_SAMESITE = None  # Allow cross-origin cookies
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='None' if not DEBUG else 'Lax')
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=not DEBUG, cast=bool)
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_DOMAIN = None  # Allow cross-port cookies
 SESSION_COOKIE_NAME = 'sessionid'
@@ -179,13 +180,13 @@ SESSION_COOKIE_PATH = '/'
 
 # CSRF settings
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript access for API calls
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
+CSRF_COOKIE_SAMESITE = config('CSRF_COOKIE_SAMESITE', default='None' if not DEBUG else 'Lax')
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=not DEBUG, cast=bool)
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost:3000,http://127.0.0.1:3000,https://top50-brands-31k8.vercel.app,https://edafemoses.pythonanywhere.com',
+    cast=Csv()
+)
 # CKEditor settings (disabled for now)
 # CKEDITOR_UPLOAD_PATH = "uploads/"
 # CKEDITOR_CONFIGS = {
